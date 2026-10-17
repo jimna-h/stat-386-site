@@ -66,7 +66,17 @@ The cron expression has five fields: minute, hour, day of the month, month, and 
 | `47 16 * * *` | 16:47 | 10:47 a.m. | 9:47 a.m. | Backup |
 | `23 21 * * *` | 21:23 | 3:23 p.m. | 2:23 p.m. | Backup |
 
-Why three times? GitHub can delay a scheduled run when Actions is busy or occasionally miss one. Each backup checks whether today's snapshot is already in `totals.csv`; it exits if so, and collects data if not. A schedule means “try around this time,” not “run exactly on time.” GitHub also supports a time zone setting for local-time schedules. See [GitHub's schedule documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+Why three times? GitHub can delay a scheduled run when Actions is busy or occasionally miss one. Each backup checks whether today's snapshot is already in `totals.csv`; it exits if so, and collects data if not. A schedule means “try around this time,” not “run exactly on time.”
+
+You can set a schedule's time zone with an IANA name. This example runs at 7:00 a.m. Mountain time, including the daylight saving change:
+
+```yaml
+schedule:
+  - cron: "0 7 * * *"
+    timezone: "America/Denver"
+```
+
+See [GitHub's schedule documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule) for details.
 
 ## 3. Keep the result after the runner goes away
 
@@ -80,12 +90,14 @@ permissions:
 Then the workflow stages the new files and commits them when they changed. These are the key Git commands from the example:
 
 ```bash
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add data/
 git diff --cached --quiet || git commit -m "Snapshot today's data"
 git push
 ```
 
-`git add` selects the files to save. `git diff --cached --quiet` checks whether any selected files changed. If they did, `||` runs the commit command; if nothing changed, there is no empty commit to make. Finally, `git push` sends the commit back to GitHub. The repository's Actions settings must also allow a read-and-write token.
+The two `git config` lines give the runner an author name and email for the commit. `git add` selects the files to save. `git diff --cached --quiet` checks whether any selected files changed. If they did, `||` runs the commit command; if nothing changed, there is no empty commit to make. Finally, `git push` sends the commit back to GitHub. If the push still fails, check **Settings → Actions → General → Workflow permissions**.
 
 The production workflow also retries if someone edits the repository during a run, and uses `actions: write` to keep its schedule enabled. See the [complete workflow](https://github.com/jimna-h/archidekt-snapshot/blob/main/.github/workflows/daily-prices.yml) for these safeguards.
 
@@ -94,6 +106,8 @@ Committing files is one way to save results. You can also send them to an extern
 ## 4. Start a run and see if it worked
 
 Before trusting the schedule, try a manual run. Push the workflow to `main`, open **Actions > Daily snapshot > Run workflow**, and click the button. Check each step's log for errors. A successful run should finish with a new “Snapshot” commit when the data changed.
+
+![GitHub Actions workflow runs page showing the highlighted Run workflow button for a workflow with the workflow_dispatch trigger. Screenshot from GitHub Docs.](actions-run-workflow.png)
 
 You can also look at the result. After a week of snapshots, `totals.csv` can show whether one deck's estimated value has moved. This chart reads the project's public CSV files from GitHub when the Quarto page is rendered:
 
@@ -118,10 +132,16 @@ fig.autofmt_xdate()
 plt.show()
 ```
 
-If the workflow can't push, check both `contents: write` and the repository's Actions permissions. If a public repository is inactive for 60 days, GitHub may disable its schedule.
+If the workflow can't push, check `contents: write` in the workflow first. If it still fails, check **Settings → Actions → General → Workflow permissions**. If a public repository is inactive for 60 days, GitHub may disable its schedule.
 
 ## Conclusion: try the pattern on your own data
 
 The process is **choose a trigger, prepare the runner, run your script, save the output, and check the result**. The script can change while the Actions steps stay similar.
 
-For practice, pick one number you'd like to track, such as a daily temperature. First add a manual trigger and confirm that the workflow saves a result. Then add a schedule. After a few runs, you'll have a small dataset you collected automatically. The [Archidekt Snapshot repository](https://github.com/jimna-h/archidekt-snapshot) is available if you'd like to compare your workflow with the full example.
+For practice, collect the daily maximum temperature for Boulder, Colorado from [Open-Meteo](https://open-meteo.com/en/docs). Its forecast API needs no API key for this small project. Build it in three steps:
+
+1. Write a Python script with the standard-library `urllib.request` and `csv` modules. Request `https://api.open-meteo.com/v1/forecast?latitude=40.015&longitude=-105.2705&daily=temperature_2m_max&timezone=America%2FDenver&forecast_days=1`, then save `daily.time[0]` and `daily.temperature_2m_max[0]` to `data/temperature.csv`.
+2. Add a workflow with only the `workflow_dispatch` trigger. Run it from the Actions tab and confirm the script creates or updates the CSV; get one green run before proceeding.
+3. Add a `schedule` trigger using the time-zone example above. Check the Actions tab after its first scheduled run.
+
+The [Open-Meteo forecast documentation](https://open-meteo.com/en/docs) lists the API parameters. The [Archidekt Snapshot repository](https://github.com/jimna-h/archidekt-snapshot) is also available to compare with a complete data pipeline.

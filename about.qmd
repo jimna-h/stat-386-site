@@ -2,4 +2,4 @@
 title: "About"
 ---
 
-About this site
+I'm James Bruce, and this is my STAT 386 project site. I write about practical Python, data workflows, and reproducible analysis.

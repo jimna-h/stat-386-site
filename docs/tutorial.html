@@ -10,7 +10,7 @@
 <meta name="dcterms.date" content="2026-10-16">
 <meta name="description" content="Learn how to schedule a Python script, keep its output, and check that an automated run worked.">
 
-<title>Automate a Python Data Pipeline with GitHub Actions – jimna-h.github.io</title>
+<title>Automate a Python Data Pipeline with GitHub Actions – James Bruce · STAT 386</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -124,7 +124,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">jimna-h.github.io</span>
+    <span class="navbar-title">James Bruce · STAT 386</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -293,61 +293,75 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>Why three times? GitHub can delay a scheduled run when Actions is busy or occasionally miss one. Each backup checks whether today’s snapshot is already in <code>totals.csv</code>; it exits if so, and collects data if not. A schedule means “try around this time,” not “run exactly on time.” GitHub also supports a time zone setting for local-time schedules. See <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule">GitHub’s schedule documentation</a>.</p>
+<p>Why three times? GitHub can delay a scheduled run when Actions is busy or occasionally miss one. Each backup checks whether today’s snapshot is already in <code>totals.csv</code>; it exits if so, and collects data if not. A schedule means “try around this time,” not “run exactly on time.”</p>
+<p>You can set a schedule’s time zone with an IANA name. This example runs at 7:00 a.m. Mountain time, including the daylight saving change:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">schedule</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">cron</span><span class="kw">:</span><span class="at"> </span><span class="st">"0 7 * * *"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timezone</span><span class="kw">:</span><span class="at"> </span><span class="st">"America/Denver"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>See <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule">GitHub’s schedule documentation</a> for details.</p>
 </section>
 </section>
 <section id="keep-the-result-after-the-runner-goes-away" class="level2">
 <h2 class="anchored" data-anchor-id="keep-the-result-after-the-runner-goes-away">3. Keep the result after the runner goes away</h2>
 <p>The runner is temporary: when the job finishes, GitHub throws that computer away. The files the script created would disappear too unless the workflow saves them back to the repository. To let the workflow push a commit, give its built-in token permission to write repository contents:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">permissions</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">contents</span><span class="kw">:</span><span class="at"> write</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">permissions</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">contents</span><span class="kw">:</span><span class="at"> write</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Then the workflow stages the new files and commits them when they changed. These are the key Git commands from the example:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add data/</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--cached</span> <span class="at">--quiet</span> <span class="kw">||</span> <span class="fu">git</span> commit <span class="at">-m</span> <span class="st">"Snapshot today's data"</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>git add</code> selects the files to save. <code>git diff --cached --quiet</code> checks whether any selected files changed. If they did, <code>||</code> runs the commit command; if nothing changed, there is no empty commit to make. Finally, <code>git push</code> sends the commit back to GitHub. The repository’s Actions settings must also allow a read-and-write token.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config user.name <span class="st">"github-actions[bot]"</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config user.email <span class="st">"41898282+github-actions[bot]@users.noreply.github.com"</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add data/</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--cached</span> <span class="at">--quiet</span> <span class="kw">||</span> <span class="fu">git</span> commit <span class="at">-m</span> <span class="st">"Snapshot today's data"</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The two <code>git config</code> lines give the runner an author name and email for the commit. <code>git add</code> selects the files to save. <code>git diff --cached --quiet</code> checks whether any selected files changed. If they did, <code>||</code> runs the commit command; if nothing changed, there is no empty commit to make. Finally, <code>git push</code> sends the commit back to GitHub. If the push still fails, check <strong>Settings → Actions → General → Workflow permissions</strong>.</p>
 <p>The production workflow also retries if someone edits the repository during a run, and uses <code>actions: write</code> to keep its schedule enabled. See the <a href="https://github.com/jimna-h/archidekt-snapshot/blob/main/.github/workflows/daily-prices.yml">complete workflow</a> for these safeguards.</p>
 <p>Committing files is one way to save results. You can also send them to an external database, such as PostgreSQL, if it is reachable from the runner. Keep database credentials in <a href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets">GitHub Actions Secrets</a>, not in the workflow file. This project uses CSVs because they’re easy to inspect and version.</p>
 </section>
 <section id="start-a-run-and-see-if-it-worked" class="level2">
 <h2 class="anchored" data-anchor-id="start-a-run-and-see-if-it-worked">4. Start a run and see if it worked</h2>
 <p>Before trusting the schedule, try a manual run. Push the workflow to <code>main</code>, open <strong>Actions &gt; Daily snapshot &gt; Run workflow</strong>, and click the button. Check each step’s log for errors. A successful run should finish with a new “Snapshot” commit when the data changed.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="actions-run-workflow.png" class="img-fluid figure-img"></p>
+<figcaption>GitHub Actions workflow runs page showing the highlighted Run workflow button for a workflow with the workflow_dispatch trigger. Screenshot from GitHub Docs.</figcaption>
+</figure>
+</div>
 <p>You can also look at the result. After a week of snapshots, <code>totals.csv</code> can show whether one deck’s estimated value has moved. This chart reads the project’s public CSV files from GitHub when the Quarto page is rendered:</p>
-<div id="cell-fig-deck-value" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>repo <span class="op">=</span> <span class="st">"https://raw.githubusercontent.com/jimna-h/archidekt-snapshot/main/data"</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>totals <span class="op">=</span> pd.read_csv(<span class="ss">f"</span><span class="sc">{</span>repo<span class="sc">}</span><span class="ss">/totals.csv"</span>, parse_dates<span class="op">=</span>[<span class="st">"date"</span>])</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>decks <span class="op">=</span> pd.read_csv(<span class="ss">f"</span><span class="sc">{</span>repo<span class="sc">}</span><span class="ss">/decks.csv"</span>, usecols<span class="op">=</span>[<span class="st">"deck_id"</span>, <span class="st">"deck_name"</span>])</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>deck <span class="op">=</span> totals.merge(decks, on<span class="op">=</span><span class="st">"deck_id"</span>)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>deck <span class="op">=</span> deck[deck[<span class="st">"deck_name"</span>].<span class="bu">str</span>.startswith(<span class="st">"3. Hungry Like the Sleuth"</span>)]</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>))</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>ax.plot(deck[<span class="st">"date"</span>], deck[<span class="st">"tcg_total"</span>], marker<span class="op">=</span><span class="st">"o"</span>)</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(ylabel<span class="op">=</span><span class="st">"Deck value (USD)"</span>, title<span class="op">=</span>deck[<span class="st">"deck_name"</span>].iloc[<span class="dv">0</span>])</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>fig.autofmt_xdate()</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div id="fig-deck-value" class="quarto-float quarto-figure quarto-figure-center anchored" alt="Line chart showing the TCGplayer value of one deck over time.">
+<div id="fig-deck-value" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-deck-value-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="tutorial_files/figure-html/fig-deck-value-output-1.png" alt="Line chart showing the TCGplayer value of one deck over time." width="602" height="328" class="figure-img">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>repo <span class="op">=</span> <span class="st">"https://raw.githubusercontent.com/jimna-h/archidekt-snapshot/main/data"</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>totals <span class="op">=</span> pd.read_csv(<span class="ss">f"</span><span class="sc">{</span>repo<span class="sc">}</span><span class="ss">/totals.csv"</span>, parse_dates<span class="op">=</span>[<span class="st">"date"</span>])</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>decks <span class="op">=</span> pd.read_csv(<span class="ss">f"</span><span class="sc">{</span>repo<span class="sc">}</span><span class="ss">/decks.csv"</span>, usecols<span class="op">=</span>[<span class="st">"deck_id"</span>, <span class="st">"deck_name"</span>])</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>deck <span class="op">=</span> totals.merge(decks, on<span class="op">=</span><span class="st">"deck_id"</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>deck <span class="op">=</span> deck[deck[<span class="st">"deck_name"</span>].<span class="bu">str</span>.startswith(<span class="st">"3. Hungry Like the Sleuth"</span>)]</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>ax.plot(deck[<span class="st">"date"</span>], deck[<span class="st">"tcg_total"</span>], marker<span class="op">=</span><span class="st">"o"</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(ylabel<span class="op">=</span><span class="st">"Deck value (USD)"</span>, title<span class="op">=</span>deck[<span class="st">"deck_name"</span>].iloc[<span class="dv">0</span>])</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>fig.autofmt_xdate()</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-deck-value-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: One deck’s TCGplayer value across daily snapshots.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-deck-value-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1
 </figcaption>
 </figure>
 </div>
-</div>
-</div>
-<p>If the workflow can’t push, check both <code>contents: write</code> and the repository’s Actions permissions. If a public repository is inactive for 60 days, GitHub may disable its schedule.</p>
+<p>If the workflow can’t push, check <code>contents: write</code> in the workflow first. If it still fails, check <strong>Settings → Actions → General → Workflow permissions</strong>. If a public repository is inactive for 60 days, GitHub may disable its schedule.</p>
 </section>
 <section id="conclusion-try-the-pattern-on-your-own-data" class="level2">
 <h2 class="anchored" data-anchor-id="conclusion-try-the-pattern-on-your-own-data">Conclusion: try the pattern on your own data</h2>
 <p>The process is <strong>choose a trigger, prepare the runner, run your script, save the output, and check the result</strong>. The script can change while the Actions steps stay similar.</p>
-<p>For practice, pick one number you’d like to track, such as a daily temperature. First add a manual trigger and confirm that the workflow saves a result. Then add a schedule. After a few runs, you’ll have a small dataset you collected automatically. The <a href="https://github.com/jimna-h/archidekt-snapshot">Archidekt Snapshot repository</a> is available if you’d like to compare your workflow with the full example.</p>
+<p>For practice, collect the daily maximum temperature for Boulder, Colorado from <a href="https://open-meteo.com/en/docs">Open-Meteo</a>. Its forecast API needs no API key for this small project. Build it in three steps:</p>
+<ol type="1">
+<li>Write a Python script with the standard-library <code>urllib.request</code> and <code>csv</code> modules. Request <code>https://api.open-meteo.com/v1/forecast?latitude=40.015&amp;longitude=-105.2705&amp;daily=temperature_2m_max&amp;timezone=America%2FDenver&amp;forecast_days=1</code>, then save <code>daily.time[0]</code> and <code>daily.temperature_2m_max[0]</code> to <code>data/temperature.csv</code>.</li>
+<li>Add a workflow with only the <code>workflow_dispatch</code> trigger. Run it from the Actions tab and confirm the script creates or updates the CSV; get one green run before proceeding.</li>
+<li>Add a <code>schedule</code> trigger using the time-zone example above. Check the Actions tab after its first scheduled run.</li>
+</ol>
+<p>The <a href="https://open-meteo.com/en/docs">Open-Meteo forecast documentation</a> lists the API parameters. The <a href="https://github.com/jimna-h/archidekt-snapshot">Archidekt Snapshot repository</a> is also available to compare with a complete data pipeline.</p>
 
 
 </section>

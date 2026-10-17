@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "jimna-h.github.io"
+  title: "James Bruce · STAT 386"
   navbar:
     left:
       - href: index.qmd
