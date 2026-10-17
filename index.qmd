@@ -2,6 +2,6 @@
 title: "jimna-h.github.io"
 ---
 
-This is a Quarto website.
-
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Welcome! Read the tutorial to learn how GitHub Actions can schedule a Python
+data pipeline and commit its output. It uses an Archidekt tracker as a worked
+example. [Read the tutorial](tutorial.qmd).

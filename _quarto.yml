@@ -1,6 +1,5 @@
 project:
   type: website
-  output-dir: docs
 
 website:
   title: "jimna-h.github.io"
@@ -8,6 +7,8 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: tutorial.qmd
+        text: Tutorial
       - about.qmd
 
 format:
