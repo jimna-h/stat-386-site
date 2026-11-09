@@ -1,0 +1,219 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "jimna-h.github.io",
+    "section": "",
+    "text": "Welcome! Read the tutorial to learn how GitHub Actions can schedule a Python data pipeline and commit its output. It uses an Archidekt tracker as a worked example. Read the tutorial."
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
+    "objectID": "tutorial.html",
+    "href": "tutorial.html",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "",
+    "text": "Suppose you want a new row of data every day. You could remember to run a script each morning, but sooner or later you’ll forget. You could leave your laptop on, but then the job stops when the laptop sleeps. GitHub Actions gives your repository a small, temporary computer that can run the script for you.\nIn this tutorial, we’ll build the idea step by step: tell GitHub when to start, show it what to run, and save the result before its computer goes away. Our example is Archidekt Snapshot, which tracks decks in a public Archidekt folder. You don’t need to know anything about Magic: The Gathering; the same pattern works for many Python scripts that produce data files."
+  },
+  {
+    "objectID": "tutorial.html#introduction-automate-repeatable-data-work",
+    "href": "tutorial.html#introduction-automate-repeatable-data-work",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "",
+    "text": "Some datasets are useful only when they are collected regularly: daily prices, weekly standings, or hourly weather. A script that runs only when you remember can leave gaps. GitHub Actions can run that script on GitHub’s computers and save its output to your repository, without a computer of your own left on.\nThis tutorial teaches the reusable pattern: trigger a workflow, prepare its environment, run a collector, and commit the updated data. The worked example is Archidekt Snapshot, which records decks in a public Archidekt folder. You do not need to know anything about Magic: Thr Gathering for this; the important idea is how Actions automates a Python script that writes CSV files."
+  },
+  {
+    "objectID": "tutorial.html#keep-the-collector-separate-from-the-workflow",
+    "href": "tutorial.html#keep-the-collector-separate-from-the-workflow",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "1. Keep the collector separate from the workflow",
+    "text": "1. Keep the collector separate from the workflow\nThe Python script, track_prices.py, fetches data and writes files under data/. The workflow in .github/workflows/daily-prices.yml decides when to run the script and what to do with those files afterward.\nThe script reads its folder ID from the ARCHIDEKT_FOLDER_ID environment variable. It gets deck and price data from Archidekt; Scryfall supplies supplementary card and token details. Each run writes current data and history, including per-deck daily totals in data/totals.csv. If it runs more than once in a day, it replaces that day’s rows instead of duplicating them. This repeat-safe behavior is useful when testing or retrying automated jobs."
+  },
+  {
+    "objectID": "tutorial.html#schedule-the-workflow-and-set-up-python",
+    "href": "tutorial.html#schedule-the-workflow-and-set-up-python",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "2. Schedule the workflow and set up Python",
+    "text": "2. Schedule the workflow and set up Python\nWorkflows are YAML files in .github/workflows/. Each run starts on a fresh runner, so the workflow checks out the repository, installs Python and the script’s dependencies, then runs the collector. Here is the abbreviated setup from the example:\non:\n  schedule:\n    - cron: \"17 13 * * *\"\n    - cron: \"47 16 * * *\"\n    - cron: \"23 21 * * *\"\n  workflow_dispatch:\n  push:\n    branches: [main]\n    paths: [track_prices.py, .github/workflows/daily-prices.yml]\n\njobs:\n  snapshot:\n    runs-on: ubuntu-24.04\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/setup-python@v6\n        with:\n          python-version: \"3.12\"\n      - run: pip install -r requirements.txt\n      - run: python track_prices.py\n        env:\n          ARCHIDEKT_FOLDER_ID: ${{ vars.ARCHIDEKT_FOLDER_ID }}\nworkflow_dispatch adds a button to start a run by hand. The push trigger takes a fresh snapshot when the collector or workflow changes. To adapt this example, add ARCHIDEKT_FOLDER_ID under Settings → Secrets and variables → Actions → Variables. The folder and its decks must be public because the collector does not sign in. The optional TIMEZONE variable controls the date assigned to snapshots and defaults to America/Denver.\nThe cron entries have five fields: minute, hour, day of month, month, and day of week. This workflow uses UTC, which does not shift when Mountain Time changes for daylight saving.\n\n\n\nCron\nUTC\nMountain in summer\nMountain in winter\nPurpose\n\n\n\n\n17 13 * * *\n13:17\n7:17 a.m.\n6:17 a.m.\nMain run\n\n\n47 16 * * *\n16:47\n10:47 a.m.\n9:47 a.m.\nBackup\n\n\n23 21 * * *\n21:23\n3:23 p.m.\n2:23 p.m.\nBackup\n\n\n\nGitHub also supports a timezone field for schedules that should follow local time. The example uses UTC because that is how its three production schedules are configured. The backup runs check whether today’s snapshot already exists and exit if it does. Scheduled runs can be delayed or occasionally dropped, so think of a schedule as “around this time,” not an alarm clock. See GitHub’s schedule documentation for details."
+  },
+  {
+    "objectID": "tutorial.html#commit-the-generated-data",
+    "href": "tutorial.html#commit-the-generated-data",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "3. Commit the generated data",
+    "text": "3. Commit the generated data\nThe runner is temporary. If the workflow ends without saving its output, the new CSVs disappear with it. Give the workflow token permission to write repository contents:\npermissions:\n  contents: write\n  actions: write\nThe example also stages data/, checks for changes, and commits only when files changed. Repository settings must allow Actions to use a read-and-write token as well. The actions: write permission lets the workflow re-enable its own schedule after a run.\nCommitting files is one way to persist results, not the only way. A workflow can also write to an external database, such as PostgreSQL, if its endpoint is reachable from the runner. Store database credentials as GitHub Actions secrets and pass them to the script through environment variables; never put passwords in the workflow file. This project commits CSVs because they are easy to inspect and version.\nTwo safeguards help when jobs overlap with other edits: a concurrency group prevents simultaneous snapshots from racing, and the production workflow retries its push after rebasing on the latest main branch. For the full implementation, see the complete workflow file."
+  },
+  {
+    "objectID": "tutorial.html#run-it-by-hand-and-inspect-the-data",
+    "href": "tutorial.html#run-it-by-hand-and-inspect-the-data",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "4. Run it by hand and inspect the data",
+    "text": "4. Run it by hand and inspect the data\nTest the workflow before relying on its schedule: push it to the default branch, open Actions → Daily snapshot → Run workflow, and start a run. Open the run’s logs to check the setup and collector steps. A successful run should create a “Snapshot” commit if the CSV data changed.\nThen inspect data/totals.csv. After a week of runs, it can show how one deck’s estimated value has changed. This chart reads the public CSVs from GitHub when the Quarto page is rendered:\n\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\nrepo = \"https://raw.githubusercontent.com/jimna-h/archidekt-snapshot/main/data\"\ntotals = pd.read_csv(f\"{repo}/totals.csv\", parse_dates=[\"date\"])\ndecks = pd.read_csv(f\"{repo}/decks.csv\", usecols=[\"deck_id\", \"deck_name\"])\n\ndeck = totals.merge(decks, on=\"deck_id\")\ndeck = deck[deck[\"deck_name\"].str.startswith(\"3. Hungry Like the Sleuth\")]\n\nfig, ax = plt.subplots(figsize=(7, 3.5))\nax.plot(deck[\"date\"], deck[\"tcg_total\"], marker=\"o\")\nax.set(ylabel=\"Deck value (USD)\", title=deck[\"deck_name\"].iloc[0])\nfig.autofmt_xdate()\nplt.show()\n\n\n\n\n\n\n\nFigure 1: One deck’s TCGplayer value across daily snapshots.\n\n\n\n\n\nIf a step fails, open its log and check the repository variable. If pushing returns a 403 error, check both contents: write and the repository’s Actions workflow permissions. If a scheduled run never starts, confirm the workflow is on the default branch; public repositories can also have schedules disabled after 60 days without activity."
+  },
+  {
+    "objectID": "tutorial.html#conclusion-reuse-the-pattern",
+    "href": "tutorial.html#conclusion-reuse-the-pattern",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "Conclusion: reuse the pattern",
+    "text": "Conclusion: reuse the pattern\nThe reusable loop is trigger → set up → collect → commit → inspect. The collector can change while the automation stays much the same.\nFor a next step, choose a small dataset you would like to track, write a script that saves a dated value, and first add only the manual workflow_dispatch trigger. Confirm that the run commits its output; then add a schedule. The Archidekt Snapshot repository is there if you want to compare your workflow with a working example."
+  },
+  {
+    "objectID": "tutorial.html#introduction-let-a-script-do-its-job-on-a-schedule",
+    "href": "tutorial.html#introduction-let-a-script-do-its-job-on-a-schedule",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "",
+    "text": "Suppose you want a new row of data every day. You could remember to run a script each morning, but sooner or later you’ll forget. You could leave your laptop on, but then the job stops when the laptop sleeps. GitHub Actions gives your repository a small, temporary computer that can run the script for you.\nIn this tutorial, we’ll build the idea step by step: tell GitHub when to start, show it what to run, and save the result before its computer goes away. Our example is Archidekt Snapshot, which tracks decks in a public Archidekt folder. You don’t need to know anything about Magic: The Gathering; the same pattern works for many Python scripts that produce data files."
+  },
+  {
+    "objectID": "tutorial.html#two-parts-the-script-and-the-instructions",
+    "href": "tutorial.html#two-parts-the-script-and-the-instructions",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "1. Two parts: the script and the instructions",
+    "text": "1. Two parts: the script and the instructions\nThink of the Python script as the worker and the Actions workflow as its instruction sheet. The worker, track_prices.py, fetches deck and price data from Archidekt and writes CSV files under data/. The workflow, .github/workflows/daily-prices.yml, tells GitHub when to start that worker and what to do with its files.\nThe script needs to know which Archidekt folder to read. It gets the folder number from an environment variable: a setting supplied when the script starts. In this workflow, the setting is named ARCHIDEKT_FOLDER_ID.\nThe script writes daily totals to data/totals.csv. If it runs twice in one day, the second run replaces that day’s rows instead of adding duplicates."
+  },
+  {
+    "objectID": "tutorial.html#tell-github-when-and-what-to-run",
+    "href": "tutorial.html#tell-github-when-and-what-to-run",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "2. Tell GitHub when and what to run",
+    "text": "2. Tell GitHub when and what to run\nAn Actions workflow is a YAML file: a list of instructions with indentation showing which instructions belong together. Each run starts on a runner, GitHub’s temporary computer. The example’s main steps are:\non:\n  schedule:\n    - cron: \"17 13 * * *\"\n    - cron: \"47 16 * * *\"\n    - cron: \"23 21 * * *\"\n  workflow_dispatch:\n  push:\n    branches: [main]\n    paths: [track_prices.py, .github/workflows/daily-prices.yml]\n\njobs:\n  snapshot:\n    runs-on: ubuntu-24.04\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/setup-python@v6\n        with:\n          python-version: \"3.12\"\n      - run: pip install -r requirements.txt\n      - run: python track_prices.py\n        env:\n          ARCHIDEKT_FOLDER_ID: ${{ vars.ARCHIDEKT_FOLDER_ID }}\nRead the top as the when and the bottom as the what:\n\nschedule starts the job at set times. The cron text describes those times.\nworkflow_dispatch adds a button so you can start a run yourself.\npush starts a new snapshot when the script or workflow changes on main.\ncheckout puts a copy of your repository on the runner. The next steps install Python 3.12 and the packages listed in requirements.txt.\nrun starts the script. The env setting gives it the folder number it needs. Add ARCHIDEKT_FOLDER_ID in Settings &gt; Secrets and variables &gt; Actions &gt; Variables.\n\n\nWhat does the schedule mean?\nThe cron expression has five fields: minute, hour, day of the month, month, and day of the week. In 17 13 * * *, the first two values mean “minute 17 of hour 13”; the stars mean “every day, every month, every weekday.” This workflow uses UTC, which stays fixed when Mountain Time changes for daylight saving.\n\n\n\nCron\nUTC\nMountain in summer\nMountain in winter\nPurpose\n\n\n\n\n17 13 * * *\n13:17\n7:17 a.m.\n6:17 a.m.\nMain run\n\n\n47 16 * * *\n16:47\n10:47 a.m.\n9:47 a.m.\nBackup\n\n\n23 21 * * *\n21:23\n3:23 p.m.\n2:23 p.m.\nBackup\n\n\n\nWhy three times? GitHub can delay a scheduled run when Actions is busy or occasionally miss one. Each backup checks whether today’s snapshot is already in totals.csv; it exits if so, and collects data if not. A schedule means “try around this time,” not “run exactly on time.” GitHub also supports a time zone setting for local-time schedules. See GitHub’s schedule documentation."
+  },
+  {
+    "objectID": "tutorial.html#keep-the-result-after-the-runner-goes-away",
+    "href": "tutorial.html#keep-the-result-after-the-runner-goes-away",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "3. Keep the result after the runner goes away",
+    "text": "3. Keep the result after the runner goes away\nThe runner is temporary: when the job finishes, GitHub throws that computer away. The files the script created would disappear too unless the workflow saves them back to the repository. To let the workflow push a commit, give its built-in token permission to write repository contents:\npermissions:\n  contents: write\nThen the workflow stages the new files and commits them when they changed. These are the key Git commands from the example:\ngit add data/\ngit diff --cached --quiet || git commit -m \"Snapshot today's data\"\ngit push\ngit add selects the files to save. git diff --cached --quiet checks whether any selected files changed. If they did, || runs the commit command; if nothing changed, there is no empty commit to make. Finally, git push sends the commit back to GitHub. The repository’s Actions settings must also allow a read-and-write token.\nThe production workflow also retries if someone edits the repository during a run, and uses actions: write to keep its schedule enabled. See the complete workflow for these safeguards.\nCommitting files is one way to save results. You can also send them to an external database, such as PostgreSQL, if it is reachable from the runner. Keep database credentials in GitHub Actions Secrets, not in the workflow file. This project uses CSVs because they’re easy to inspect and version."
+  },
+  {
+    "objectID": "tutorial.html#start-a-run-and-see-if-it-worked",
+    "href": "tutorial.html#start-a-run-and-see-if-it-worked",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "4. Start a run and see if it worked",
+    "text": "4. Start a run and see if it worked\nBefore trusting the schedule, try a manual run. Push the workflow to main, open Actions &gt; Daily snapshot &gt; Run workflow, and click the button. Check each step’s log for errors. A successful run should finish with a new “Snapshot” commit when the data changed.\nYou can also look at the result. After a week of snapshots, totals.csv can show whether one deck’s estimated value has moved. This chart reads the project’s public CSV files from GitHub when the Quarto page is rendered:\n\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\nrepo = \"https://raw.githubusercontent.com/jimna-h/archidekt-snapshot/main/data\"\ntotals = pd.read_csv(f\"{repo}/totals.csv\", parse_dates=[\"date\"])\ndecks = pd.read_csv(f\"{repo}/decks.csv\", usecols=[\"deck_id\", \"deck_name\"])\n\ndeck = totals.merge(decks, on=\"deck_id\")\ndeck = deck[deck[\"deck_name\"].str.startswith(\"3. Hungry Like the Sleuth\")]\n\nfig, ax = plt.subplots(figsize=(7, 3.5))\nax.plot(deck[\"date\"], deck[\"tcg_total\"], marker=\"o\")\nax.set(ylabel=\"Deck value (USD)\", title=deck[\"deck_name\"].iloc[0])\nfig.autofmt_xdate()\nplt.show()\n\n\n\n\n\n\n\nFigure 1: One deck’s TCGplayer value across daily snapshots.\n\n\n\n\n\nIf the workflow can’t push, check both contents: write and the repository’s Actions permissions. If a public repository is inactive for 60 days, GitHub may disable its schedule."
+  },
+  {
+    "objectID": "tutorial.html#conclusion-try-the-pattern-on-your-own-data",
+    "href": "tutorial.html#conclusion-try-the-pattern-on-your-own-data",
+    "title": "Automate a Python Data Pipeline with GitHub Actions",
+    "section": "Conclusion: try the pattern on your own data",
+    "text": "Conclusion: try the pattern on your own data\nThe process is choose a trigger, prepare the runner, run your script, save the output, and check the result. The script can change while the Actions steps stay similar.\nFor practice, pick one number you’d like to track, such as a daily temperature. First add a manual trigger and confirm that the workflow saves a result. Then add a schedule. After a few runs, you’ll have a small dataset you collected automatically. The Archidekt Snapshot repository is available if you’d like to compare your workflow with the full example."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html",
+    "href": "holy-grail-dialogue.html",
+    "title": "What Wikipedia Pageviews Say About Monty Python’s Films",
+    "section": "",
+    "text": "Monty Python and the Holy Grail is my favorite movie, so I was curious about the film’s place in popular culture. One trace of public attention is how often people look up a film’s Wikipedia page. That led to my question: How has English Wikipedia traffic for Holy Grail changed over time, and did its 50th anniversary coincide with a noticeable increase compared with two other Monty Python films?\nPageviews cannot tell me how many people watched the movie, whether they liked it, or why they visited the page. They do provide a consistent daily measure of interest in the article, which makes a useful quantitative starting point."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#a-familiar-film-a-new-data-question",
+    "href": "holy-grail-dialogue.html#a-familiar-film-a-new-data-question",
+    "title": "What Can Dialogue Turns Tell Us About a Movie Script?",
+    "section": "",
+    "text": "Some movie scenes stick with us because of what happens; others are memorable because of how the characters talk. That made me curious about whether dialogue patterns can be described with data. For my project, I want to explore the screenplay for Monty Python and the Holy Grail and ask: How do dialogue patterns vary across characters and scenes?\nRather than trying to measure which character is funniest or which scene is best, I will focus on observable features of the text. How long are characters’ turns? Do some characters ask more questions or use more exclamations? Do those patterns change from one part of the screenplay to another? These questions turn a familiar film into a small text-analysis project while leaving room to discuss the limits of counting words and punctuation."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#building-a-dataset-from-dialogue",
+    "href": "holy-grail-dialogue.html#building-a-dataset-from-dialogue",
+    "title": "What Can Dialogue Turns Tell Us About a Movie Script?",
+    "section": "Building a dataset from dialogue",
+    "text": "Building a dataset from dialogue\nThe starting point is a PDF copy of the screenplay. My unit of analysis will be a dialogue turn: one stretch of speech attributed to one speaker. If the extraction and speaker labels are reliable enough, I will aim to include at least 200 turns.\nFor each turn, I plan to record:\n\na turn number and a scene or section label;\nthe speaker’s name, when it can be identified consistently;\nword count and character count;\ncounts of question marks and exclamation marks.\n\nThat gives the dataset more than five features, including several numeric variables. The goal is not to publish a copy of the screenplay. Instead, I will keep the analysis focused on structured labels and counts, and avoid reproducing dialogue in the post or repository.\nThe first technical challenge is getting usable text out of a PDF. I wrote analyze_holy_grail.py to read a local PDF, extract text, and identify likely speaker labels and dialogue turns. It saves only turn-level counts and labels—not the dialogue itself—along with a speaker summary, an overall JSON summary, and plots. It also reports when it cannot identify standard scene headings, in which case PDF page numbers are only a rough location proxy.\nAfter obtaining a local copy whose use is permitted, the analysis can be run from the project directory:\nuv sync\nuv run python analyze_holy_grail.py path/to/screenplay.pdf\nPDF text extraction can scramble line breaks or confuse page headers with screenplay text. The parser therefore uses heuristics, not perfect speech recognition: I will inspect the aggregate counts and manually compare a sample of identified turns with the source. If speaker identification is too unreliable, I will report that limitation and narrow the comparisons rather than silently treating uncertain labels as correct."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#responsible-collection-and-sharing",
+    "href": "holy-grail-dialogue.html#responsible-collection-and-sharing",
+    "title": "What Can Dialogue Turns Tell Us About a Movie Script?",
+    "section": "Responsible collection and sharing",
+    "text": "Responsible collection and sharing\nThe PDF’s availability online does not by itself establish permission to redistribute the screenplay or reuse its text. Before publishing the dataset, I will check the source’s terms and ask my instructor if it is unclear whether sharing derived measurements is appropriate. I will not put the screenplay or substantial excerpts in my repository. If sharing the derived dataset is not appropriate, I can publish the code and document how to reproduce the analysis from a legally obtained copy instead.\nI will also make the analysis reproducible without repeatedly requesting the document. The script can check whether a local copy is already available, identify its expected format, and report extraction problems clearly. I will keep the project limited to the document needed for this analysis and avoid unnecessary requests to the host."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#what-i-plan-to-explore",
+    "href": "holy-grail-dialogue.html#what-i-plan-to-explore",
+    "title": "What Can Dialogue Turns Tell Us About a Movie Script?",
+    "section": "What I plan to explore",
+    "text": "What I plan to explore\nOnce the dataset is validated, I will start with basic summaries: the number of dialogue turns, the number of distinct speakers and scenes, and the distribution of words per turn. Then I can compare turn lengths across speakers using a plot that shows both the typical length and the spread. A second plot could show how turn length or punctuation counts vary across scene order.\nThese are descriptive comparisons, not evidence that a character is inherently more talkative or that punctuation measures emotion. A speaker may appear in only a few scenes, and extracted speaker labels may be inconsistent. Short turns and long turns can also have different functions in a script. I will show the number of observations behind each comparison and avoid strong conclusions when the data are sparse.\n\nResults to add after analysis\nThis is a project draft; I have not yet produced or validated the dataset, so I am not reporting numerical findings here. After the extraction and exploratory analysis, I will replace this note with the final sample size, summary statistics, visualizations, and the patterns that are actually supported by the data. In particular, I will check whether every included scene and speaker has enough observations for a fair comparison."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#what-this-project-canand-cannotshow",
+    "href": "holy-grail-dialogue.html#what-this-project-canand-cannotshow",
+    "title": "What Can Dialogue Turns Tell Us About a Movie Script?",
+    "section": "What this project can—and cannot—show",
+    "text": "What this project can—and cannot—show\nCounting turns is a simple way to look at structure, but it does not capture delivery, timing, acting, editing, or the audience’s response. A word-count difference is a feature of this screenplay text, not a complete explanation of a character. The project is most useful as a transparent, reproducible example of how to turn a document into a dataset, check the quality of that dataset, and ask questions that the data can reasonably answer.\nWhen the analysis is complete, I will link the Python code and any shareable data here:\n\nCode repository: [Add the project repository link]\nDataset: [Add a link if sharing is permitted]\nSource document: Screenplay PDF"
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#a-familiar-film-treated-as-data",
+    "href": "holy-grail-dialogue.html#a-familiar-film-treated-as-data",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "",
+    "text": "Some scenes in Monty Python and the Holy Grail are memorable not only for what happens, but for how the characters speak. I wanted to see whether those patterns could be described with data. My question is: How do dialogue patterns vary across speakers in the screenplay?\nI focus on measurable features—turn length and punctuation—not on whether a character is funny, emotional, or important. A word count cannot capture timing, delivery, acting, editing, or the audience’s reaction. But it can offer a starting point for exploring a script as structured text."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#from-screenplay-to-dataset",
+    "href": "holy-grail-dialogue.html#from-screenplay-to-dataset",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "From screenplay to dataset",
+    "text": "From screenplay to dataset\nI used a 132-page PDF copy of the screenplay from the Internet Archive item page. Internet Archive hosts files with different rights, so being able to download a file does not automatically mean it can be shared. I did not find a license or rights statement on this item’s page or in its metadata. I am not including the PDF or any dialogue in this post. Before sharing the data made from it, I should check whether that is allowed and ask my instructor if I am unsure.\nThis project does not scrape a website or use an API. The script reads a PDF saved on my computer and does not connect to the Internet. Anyone repeating the analysis should use a copy they are allowed to access and analyze.\nI count one dialogue turn each time the script finds a likely speaker and their speech. For each turn, the Python script records eight things: turn number, PDF page, scene number, speaker label, word count, character count, number of question marks, and number of exclamation marks. The dataset has 1,061 turns. After checking the output against the PDF, I updated the script to recognize numbered scene headings, skip the opening credits, and stop at the “end of film” marker. It found 34 likely scene headings, though the scene labels are still estimates.\nThe script uses PyMuPDF to read the PDF and looks for lines that might be speaker names. It then counts words and punctuation. To run it with a local copy you are allowed to use, clone the analysis code repository, then run:\nuv sync\nuv run python analyze_holy_grail.py path/to/screenplay.pdf\nThe results go into holy-grail-analysis/: two CSV files, a short JSON summary, and three plots. The script saves counts and speaker labels, not the dialogue. These files are local; check whether the results can be shared before posting them online."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#what-the-extracted-data-show",
+    "href": "holy-grail-dialogue.html#what-the-extracted-data-show",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "What the extracted data show",
+    "text": "What the extracted data show\nThe parser identified 193 distinct speaker labels, but those should not be mistaken for 193 verified characters. It relies on uppercase lines resembling character cues; PDF line breaks, headings, and other text can cause labels to be missed or misread. To avoid comparing labels with very little data, I looked at the 41 labels with at least five turns. Together they account for 931 turns, about 82% of the dataset. The other 152 labels occur fewer than five times.\nTurns are generally short, with a long right tail. The mean is 17.37 words per turn, compared with a median of 9 words; the longest extracted turn is 325 words. That unusually long maximum helps explain why the mean is much larger than the median. Half of the extracted turns contain nine words or fewer.\n\n\n\nDistribution of extracted dialogue-turn lengths.\n\n\nArthur is the most frequently assigned label, with 221 turns. Among the ten most frequent labels, median turn length ranges from five words for Galahad and Third Head to 13 for King Brian. Arthur’s median is 10 words. Medians are useful here because they are less affected than means by unusually long turns. The differences are descriptive, not evidence that one character is inherently more talkative: the number of turns varies, and the labels themselves have not been independently verified.\n\n\n\nMedian turn length for the ten most frequent extracted speaker labels.\n\n\nAcross all turns, the average is 0.21 question marks and 0.48 exclamation marks per turn. Those are punctuation counts per turn, not the percentage of turns containing punctuation; a turn can contain several marks. Punctuation may reflect the document’s formatting and cannot establish how a line was delivered or how a character felt.\nThe script also plots average turn length by PDF page. Because it found no scene headings, page number is only a rough location within the document, not a substitute for scene order or scene boundaries.\n\n\n\nMean dialogue-turn length by PDF page."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#limitations-and-next-steps",
+    "href": "holy-grail-dialogue.html#limitations-and-next-steps",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "Limitations and next steps",
+    "text": "Limitations and next steps\nThe script may join lines that should be separate, split a turn in the wrong place, or mistake text for a speaker name. The 314-word turn and many labels that appear only once are signs that the results need checking. I have not compared every turn with the PDF, so these numbers describe what the script found, not a verified copy of the screenplay. A good next step is to check a sample of pages and see how often the script gets the turns and names right.\nThe dataset has more than 200 turns and five fields, and I turned a PDF into a table of counts. I used one source rather than combining data from several places, so I should check with Professor Kerby that this meets the project’s data-curation goal.\nResources: Internet Archive screenplay listing · Analysis code repository"
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#a-familiar-film-as-data",
+    "href": "holy-grail-dialogue.html#a-familiar-film-as-data",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "",
+    "text": "My favorite movie is Monty Python and the Holy Grail, and some scenes are memorable for how the characters talk. I wanted to see what simple counts could tell us about their dialogue. My question is: How do dialogue patterns vary across speakers in the screenplay?\nI look at turn length and punctuation, not at whether a character is funny or emotional. Word counts cannot capture timing, acting, or audience reaction, but they can help us describe the script."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#what-i-found",
+    "href": "holy-grail-dialogue.html#what-i-found",
+    "title": "What Dialogue Turns Reveal About a Movie Script",
+    "section": "What I found",
+    "text": "What I found\nThe script found 129 different speaker labels. These may not all be real character names: the script guesses based on lines that look like speaker cues, and PDF formatting can confuse it. I focused on the 41 labels that appear at least five times. They account for 931 turns, about 88% of the data. The other 88 labels appear fewer than five times.\nMost turns are short. The average is 14 words per turn, but the middle turn has 8 words. Half the turns have eight words or fewer. One turn has 314 words, which pulls the average upward.\n\n\n\nDistribution of extracted dialogue-turn lengths.\n\n\nArthur has the most turns, with 221. Among the ten labels that appear most often, the middle turn ranges from five words for Galahad and Third Head to 12 words for King Brian. Arthur’s middle turn is 10 words. I use the middle value because a few very long turns have less effect on it than on the average. These results describe the script’s extracted labels; they do not prove that one character is more talkative, especially since the labels have not all been checked by hand.\n\n\n\nMedian turn length for the ten most frequent extracted speaker labels.\n\n\nOn average, each turn has 0.22 question marks and 0.47 exclamation marks. These are counts per turn, not percentages of turns. A turn can have more than one punctuation mark. Punctuation cannot tell us exactly how a line was said or how a character felt.\nThe last plot shows average turn length by PDF page. Page numbers give a rough sense of where a turn appears; the scene-heading detection is not reliable enough for detailed scene-by-scene comparisons.\n\n\n\nMean dialogue-turn length by PDF page."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#a-favorite-film-measured-a-different-way",
+    "href": "holy-grail-dialogue.html#a-favorite-film-measured-a-different-way",
+    "title": "What Wikipedia Pageviews Say About Monty Python’s Films",
+    "section": "",
+    "text": "Monty Python and the Holy Grail is my favorite movie, so I was curious about the film’s place in popular culture. One trace of public attention is how often people look up a film’s Wikipedia page. That led to my question: How has English Wikipedia traffic for Holy Grail changed over time, and did its 50th anniversary coincide with a noticeable increase compared with two other Monty Python films?\nPageviews cannot tell me how many people watched the movie, whether they liked it, or why they visited the page. They do provide a consistent daily measure of interest in the article, which makes a useful quantitative starting point."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#collecting-the-data",
+    "href": "holy-grail-dialogue.html#collecting-the-data",
+    "title": "What Wikipedia Pageviews Say About Monty Python’s Films",
+    "section": "Collecting the data",
+    "text": "Collecting the data\nI used Wikimedia’s public Pageviews Analytics API to collect daily English Wikipedia pageviews for Monty Python and the Holy Grail, Monty Python’s Life of Brian, and Monty Python’s The Meaning of Life. The API has daily data beginning July 1, 2015. I requested the all-access user traffic category from that date through October 31, 2026, making one request at a time for each article.\nThe result is a tidy dataset with 12,423 article-day rows: 4,141 dates for each of three film pages. Each row includes the article name and Wikipedia title, date, view count, year, month, weekday, and month start. The view count is numeric, and the date fields make it possible to compare days, months, and years. Wikimedia describes the data as page requests and filters traffic it classifies as spiders or automated agents, but that filter is still not a verified count of individual people.\nTo make a similar dataset, identify the exact Wikipedia article titles, choose a date range, and request each title from the API’s per-article daily endpoint. I sent a descriptive User-Agent, followed the API access policy, and made sequential requests. Wikimedia releases Analytics API data under CC0. The collection uses public aggregate traffic and does not collect names, account details, or page contents.\nThe Python script, requirements, full daily CSV, summaries, and charts are in my separate analysis repository. The script uses pandas for summaries and Matplotlib for figures. Run it with uv sync followed by uv run python pageviews_analysis.py. It retrieves fresh data and writes the results to pageviews-analysis/."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#what-stands-out",
+    "href": "holy-grail-dialogue.html#what-stands-out",
+    "title": "What Wikipedia Pageviews Say About Monty Python’s Films",
+    "section": "What stands out",
+    "text": "What stands out\nAcross the full period, Holy Grail averaged about 1,667 pageviews per day, with a median of 1,378. Life of Brian averaged about 1,497 (median 1,188), while The Meaning of Life averaged about 476 (median 446). The gap between means and medians reflects a handful of unusually large days. For example, the largest daily count for Life of Brian was 259,598 on October 30, 2016; Holy Grail peaked at 155,427 on October 13, 2016. Those spikes stand out from typical daily traffic, and this analysis does not establish what caused them.\n\n\n\nDaily pageviews smoothed with a 28-day rolling average for the three film articles.\n\n\nThe 50th anniversary year offers a more focused comparison. I compared each 2025 calendar month’s average daily views with the median for that same month during 2016–2024. Holy Grail was markedly above that reference in May, June, and July: roughly 40%, 30%, and 31% higher, respectively. Several other months were near or below the reference, and the January–October 2025 average was a little below the corresponding historical-month average. This is a descriptive pattern, not evidence that the anniversary caused the midyear increase, since other events and ordinary variation could also explain it.\n\n\n\nHoly Grail’s monthly 2025 pageviews compared with the same-month 2016–2024 median; 100 is the reference level.\n\n\nComparing the three articles also shows why scale matters: the pages have different typical traffic levels, while rare spikes can dominate a plot. The raw monthly comparison retains the actual scale, and the indexed chart makes relative changes easier to see. A seasonality heatmap for Holy Grail shows monthly averages across years, but it does not explain the causes of any pattern.\n\n\n\nAverage Holy Grail pageviews by calendar month and year."
+  },
+  {
+    "objectID": "holy-grail-dialogue.html#limits-and-next-questions",
+    "href": "holy-grail-dialogue.html#limits-and-next-questions",
+    "title": "What Wikipedia Pageviews Say About Monty Python’s Films",
+    "section": "Limits and next questions",
+    "text": "Limits and next questions\nWikipedia pageviews are not a measure of ticket sales, streaming, how many people watched a film, or public opinion. They cover English Wikipedia only, and automated-traffic classification is imperfect. The 2016 spikes deserve investigation before drawing conclusions: I could compare them with dated news or other events, while being careful not to treat coincidence as proof. I could also compare anniversary periods across all three films or look at other language editions.\nFor now, the data shows that Holy Grail continues to receive steady Wikipedia attention, with a midyear lift in its 50th anniversary year but no clear across-the-board jump. The API makes the traffic easy to collect and reproduce. Explaining why it changes is a separate question.\nResources: Wikimedia Pageviews API · API access policy · Analysis code and data"
+  }
+]

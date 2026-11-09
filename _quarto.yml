@@ -1,5 +1,6 @@
 project:
   type: website
+  output-dir: docs
 
 website:
   title: "jimna-h.github.io"
@@ -20,5 +21,4 @@ format:
       - brand
     css: styles.css
     toc: true
-
 
