@@ -1,15 +1,16 @@
 project:
   type: website
-  output-dir: docs
 
 website:
-  title: "James Bruce · STAT 386"
+  title: "jimna-h.github.io"
   navbar:
     left:
       - href: index.qmd
         text: Home
       - href: tutorial.qmd
         text: Tutorial
+      - href: holy-grail-dialogue.qmd
+        text: Project
       - about.qmd
 
 format:
@@ -19,6 +20,5 @@ format:
       - brand
     css: styles.css
     toc: true
-
 
 

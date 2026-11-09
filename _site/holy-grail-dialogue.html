@@ -6,8 +6,11 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="James Bruce">
+<meta name="dcterms.date" content="2026-11-07">
+<meta name="description" content="An API-based look at Wikipedia attention to Monty Python and the Holy Grail and two related films.">
 
-<title>jimna-h.github.io – James Bruce · STAT 386</title>
+<title>What Wikipedia Pageviews Say About Monty Python’s Films – jimna-h.github.io</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -86,7 +89,7 @@ ul.task-list li input[type="checkbox"] {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">James Bruce · STAT 386</span>
+    <span class="navbar-title">jimna-h.github.io</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -96,12 +99,16 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./tutorial.html"> 
 <span class="menu-text">Tutorial</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./holy-grail-dialogue.html" aria-current="page"> 
+<span class="menu-text">Project</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./about.html"> 
@@ -118,22 +125,48 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#a-favorite-film-measured-a-different-way" id="toc-a-favorite-film-measured-a-different-way" class="nav-link active" data-scroll-target="#a-favorite-film-measured-a-different-way">A favorite film, measured a different way</a></li>
+  <li><a href="#collecting-the-data" id="toc-collecting-the-data" class="nav-link" data-scroll-target="#collecting-the-data">Collecting the data</a></li>
+  <li><a href="#what-stands-out" id="toc-what-stands-out" class="nav-link" data-scroll-target="#what-stands-out">What stands out</a></li>
+  <li><a href="#limits-and-next-questions" id="toc-limits-and-next-questions" class="nav-link" data-scroll-target="#limits-and-next-questions">Limits and next questions</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">jimna-h.github.io</h1>
+<h1 class="title">What Wikipedia Pageviews Say About Monty Python’s Films</h1>
 </div>
 
+<div>
+  <div class="description">
+    An API-based look at Wikipedia attention to Monty Python and the Holy Grail and two related films.
+  </div>
+</div>
 
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>James Bruce </p>
+          </div>
+  </div>
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 7, 2026</p>
+    </div>
+  </div>
   
     
   </div>
@@ -143,9 +176,50 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Welcome! Read the tutorial to learn how GitHub Actions can schedule a Python data pipeline and commit its output. It uses an Archidekt tracker as a worked example. <a href="./tutorial.html">Read the tutorial</a>.</p>
+<section id="a-favorite-film-measured-a-different-way" class="level2">
+<h2 class="anchored" data-anchor-id="a-favorite-film-measured-a-different-way">A favorite film, measured a different way</h2>
+<p><em>Monty Python and the Holy Grail</em> is my favorite movie, so I was curious about the film’s place in popular culture. One trace of public attention is how often people look up a film’s Wikipedia page. That led to my question: <strong>How has English Wikipedia traffic for <em>Holy Grail</em> changed over time, and did its 50th anniversary coincide with a noticeable increase compared with two other Monty Python films?</strong></p>
+<p>Pageviews cannot tell me how many people watched the movie, whether they liked it, or why they visited the page. They do provide a consistent daily measure of interest in the article, which makes a useful quantitative starting point.</p>
+</section>
+<section id="collecting-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="collecting-the-data">Collecting the data</h2>
+<p>I used Wikimedia’s public <a href="https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/reference/page-views.html">Pageviews Analytics API</a> to collect daily English Wikipedia pageviews for <em>Monty Python and the Holy Grail</em>, <em>Monty Python’s Life of Brian</em>, and <em>Monty Python’s The Meaning of Life</em>. The API has daily data beginning July 1, 2015. I requested the all-access <code>user</code> traffic category from that date through October 31, 2026, making one request at a time for each article.</p>
+<p>The result is a tidy dataset with <strong>12,423 article-day rows</strong>: 4,141 dates for each of three film pages. Each row includes the article name and Wikipedia title, date, view count, year, month, weekday, and month start. The view count is numeric, and the date fields make it possible to compare days, months, and years. Wikimedia describes the data as page requests and filters traffic it classifies as spiders or automated agents, but that filter is still not a verified count of individual people.</p>
+<p>To make a similar dataset, identify the exact Wikipedia article titles, choose a date range, and request each title from the API’s per-article daily endpoint. I sent a descriptive User-Agent, followed the API access policy, and made sequential requests. Wikimedia releases Analytics API data under <a href="https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/documentation/access-policy.html">CC0</a>. The collection uses public aggregate traffic and does not collect names, account details, or page contents.</p>
+<p>The Python script, requirements, full daily CSV, summaries, and charts are in my <a href="https://github.com/jimna-h/mpathg-analysis">separate analysis repository</a>. The script uses pandas for summaries and Matplotlib for figures. Run it with <code>uv sync</code> followed by <code>uv run python pageviews_analysis.py</code>. It retrieves fresh data and writes the results to <code>pageviews-analysis/</code>.</p>
+</section>
+<section id="what-stands-out" class="level2">
+<h2 class="anchored" data-anchor-id="what-stands-out">What stands out</h2>
+<p>Across the full period, <em>Holy Grail</em> averaged about <strong>1,667 pageviews per day</strong>, with a median of <strong>1,378</strong>. <em>Life of Brian</em> averaged about <strong>1,497</strong> (median 1,188), while <em>The Meaning of Life</em> averaged about <strong>476</strong> (median 446). The gap between means and medians reflects a handful of unusually large days. For example, the largest daily count for <em>Life of Brian</em> was 259,598 on October 30, 2016; <em>Holy Grail</em> peaked at 155,427 on October 13, 2016. Those spikes stand out from typical daily traffic, and this analysis does not establish what caused them.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="pageviews-figures/pageviews_daily_trend.png" class="img-fluid figure-img"></p>
+<figcaption>Daily pageviews smoothed with a 28-day rolling average for the three film articles.</figcaption>
+</figure>
+</div>
+<p>The 50th anniversary year offers a more focused comparison. I compared each 2025 calendar month’s average daily views with the median for that same month during 2016–2024. <em>Holy Grail</em> was markedly above that reference in May, June, and July: roughly <strong>40%, 30%, and 31% higher</strong>, respectively. Several other months were near or below the reference, and the January–October 2025 average was a little below the corresponding historical-month average. This is a descriptive pattern, not evidence that the anniversary caused the midyear increase, since other events and ordinary variation could also explain it.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="pageviews-figures/holy_grail_50th_anniversary.png" class="img-fluid figure-img"></p>
+<figcaption>Holy Grail’s monthly 2025 pageviews compared with the same-month 2016–2024 median; 100 is the reference level.</figcaption>
+</figure>
+</div>
+<p>Comparing the three articles also shows why scale matters: the pages have different typical traffic levels, while rare spikes can dominate a plot. The raw monthly comparison retains the actual scale, and the indexed chart makes relative changes easier to see. A seasonality heatmap for <em>Holy Grail</em> shows monthly averages across years, but it does not explain the causes of any pattern.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="pageviews-figures/holy_grail_pageviews_seasonality.png" class="img-fluid figure-img"></p>
+<figcaption>Average Holy Grail pageviews by calendar month and year.</figcaption>
+</figure>
+</div>
+</section>
+<section id="limits-and-next-questions" class="level2">
+<h2 class="anchored" data-anchor-id="limits-and-next-questions">Limits and next questions</h2>
+<p>Wikipedia pageviews are not a measure of ticket sales, streaming, how many people watched a film, or public opinion. They cover English Wikipedia only, and automated-traffic classification is imperfect. The 2016 spikes deserve investigation before drawing conclusions: I could compare them with dated news or other events, while being careful not to treat coincidence as proof. I could also compare anniversary periods across all three films or look at other language editions.</p>
+<p>For now, the data shows that <em>Holy Grail</em> continues to receive steady Wikipedia attention, with a midyear lift in its 50th anniversary year but no clear across-the-board jump. The API makes the traffic easy to collect and reproduce. Explaining why it changes is a separate question.</p>
+<p><strong>Resources:</strong> <a href="https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/reference/page-views.html">Wikimedia Pageviews API</a> · <a href="https://doc.wikimedia.org/generated-data-platform/aqs/analytics-api/documentation/access-policy.html">API access policy</a> · <a href="https://github.com/jimna-h/mpathg-analysis">Analysis code and data</a></p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

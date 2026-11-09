@@ -1,0 +1,20 @@
+{
+  "source_file": "MPATHG_script.pdf",
+  "pdf_pages": 132,
+  "dialogue_turns": 1061,
+  "distinct_speakers": 129,
+  "scene_headings_detected": 34,
+  "turns_with_scene_number": 1061,
+  "mean_words_per_turn": 14.14,
+  "median_words_per_turn": 8.0,
+  "maximum_words_per_turn": 314,
+  "speakers_with_minimum_turns": 41,
+  "minimum_turns_for_speaker_comparison": 5,
+  "outputs": [
+    "dialogue_turn_features.csv",
+    "speaker_summary.csv",
+    "turn_length_distribution.png",
+    "speaker_turn_lengths.png",
+    "turn_length_by_page.png"
+  ]
+}
